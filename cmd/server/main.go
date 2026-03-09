@@ -2,9 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
-	"time"
-
 	"github.com/gabxlbellior/recommendation-service/internal/cache"
 	"github.com/gabxlbellior/recommendation-service/internal/config"
 	"github.com/gabxlbellior/recommendation-service/internal/handler"
@@ -12,9 +9,14 @@ import (
 	"github.com/gabxlbellior/recommendation-service/internal/repository"
 	"github.com/gabxlbellior/recommendation-service/internal/service"
 	"github.com/gabxlbellior/recommendation-service/internal/transport"
+	"github.com/gin-gonic/gin"
+	"log"
+	"time"
 )
 
 func main() {
+	gin.SetMode(gin.ReleaseMode)
+
 	cfg := config.Load()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

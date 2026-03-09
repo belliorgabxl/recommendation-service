@@ -27,8 +27,8 @@ func NewRedisRecommendationCache(ctx context.Context, cfg config.Config) (*Redis
 		Addr:         cfg.RedisAddr(),
 		Password:     cfg.RedisPassword,
 		DB:           0,
-		PoolSize:     10,
-		MinIdleConns: 2,
+		PoolSize:     20,
+		MinIdleConns: 4,
 		DialTimeout:  3 * time.Second,
 		ReadTimeout:  2 * time.Second,
 		WriteTimeout: 2 * time.Second,
@@ -86,7 +86,6 @@ func BuildRecommendationKey(userID int64, limit int, latestWatchedAt *time.Time)
 	if latestWatchedAt != nil {
 		version = strconv.FormatInt(latestWatchedAt.UTC().Unix(), 10)
 	}
-
 	return "rec:user:" +
 		strconv.FormatInt(userID, 10) +
 		":limit:" +

@@ -102,3 +102,72 @@ func (h *RecommendationHandler) GetUserRecommendations(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *RecommendationHandler) GetBatchRecommendations(c *gin.Context) {
+	page := 1
+	limit := 20
+
+	pageParam := c.Query("page")
+	if pageParam != "" {
+		parsedPage, err := strconv.Atoi(pageParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": gin.H{
+					"code":    "invalid_parameter",
+					"message": "page must be a valid integer",
+				},
+			})
+			return
+		}
+		page = parsedPage
+	}
+
+	limitParam := c.Query("limit")
+	if limitParam != "" {
+		parsedLimit, err := strconv.Atoi(limitParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": gin.H{
+					"code":    "invalid_parameter",
+					"message": "limit must be a valid integer",
+				},
+			})
+			return
+		}
+		limit = parsedLimit
+	}
+
+	resp, err := h.recommendationService.GetBatchRecommendations(c.Request.Context(), page, limit)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidPage):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": gin.H{
+					"code":    "invalid_parameter",
+					"message": "page must be greater than 0",
+				},
+			})
+			return
+
+		case errors.Is(err, service.ErrInvalidBatchSize):
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": gin.H{
+					"code":    "invalid_parameter",
+					"message": "limit must be between 1 and 100",
+				},
+			})
+			return
+
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": gin.H{
+					"code":    "internal_error",
+					"message": "internal server error",
+				},
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

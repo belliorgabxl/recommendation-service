@@ -18,6 +18,7 @@ func NewRouter(cfg config.Config, handlers Handlers) *gin.Engine {
 
 	router.GET("/health", handlers.Health.Health)
 	router.GET("/users/:user_id/recommendations", handlers.Recommendation.GetUserRecommendations)
+	router.GET("/recommendations/batch", handlers.Recommendation.GetBatchRecommendations)
 
 	return router
 }

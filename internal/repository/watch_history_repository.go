@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 	"github.com/gabxlbellior/recommendation-service/internal/domain"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"time"
 )
 
 type WatchHistoryRepository interface {
 	GetUserWatchHistoryWithGenres(ctx context.Context, userID int64, limit int) ([]domain.WatchHistoryWithGenre, error)
 	GetWatchHistoriesForUsers(ctx context.Context, userIDs []int64, perUserLimit int) (map[int64][]domain.WatchHistoryWithGenre, error)
 	GetWatchedContentIDs(ctx context.Context, userID int64) (map[int64]struct{}, error)
+	GetWatchedContentIDsForUsers(ctx context.Context, userIDs []int64) (map[int64]map[int64]struct{}, error)
 	GetLatestWatchedAt(ctx context.Context, userID int64) (*time.Time, error)
 }
 
@@ -61,7 +62,6 @@ func (r *PostgresWatchHistoryRepository) GetUserWatchHistoryWithGenres(ctx conte
 		); err != nil {
 			return nil, fmt.Errorf("scan user watch history row: %w", err)
 		}
-
 		histories = append(histories, item)
 	}
 
@@ -124,7 +124,6 @@ func (r *PostgresWatchHistoryRepository) GetWatchHistoriesForUsers(ctx context.C
 		); err != nil {
 			return nil, fmt.Errorf("scan watch histories for users row: %w", err)
 		}
-
 		result[item.UserID] = append(result[item.UserID], item)
 	}
 
@@ -160,6 +159,47 @@ func (r *PostgresWatchHistoryRepository) GetWatchedContentIDs(ctx context.Contex
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate watched content id rows: %w", err)
+	}
+
+	return result, nil
+}
+
+func (r *PostgresWatchHistoryRepository) GetWatchedContentIDsForUsers(ctx context.Context, userIDs []int64) (map[int64]map[int64]struct{}, error) {
+	result := make(map[int64]map[int64]struct{})
+
+	if len(userIDs) == 0 {
+		return result, nil
+	}
+
+	const query = `
+		SELECT DISTINCT user_id, content_id
+		FROM user_watch_history
+		WHERE user_id = ANY($1::bigint[])
+		ORDER BY user_id ASC
+	`
+
+	rows, err := r.db.Query(ctx, query, userIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get watched content ids for users: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var userID int64
+		var contentID int64
+
+		if err := rows.Scan(&userID, &contentID); err != nil {
+			return nil, fmt.Errorf("scan watched content ids for users row: %w", err)
+		}
+
+		if result[userID] == nil {
+			result[userID] = make(map[int64]struct{})
+		}
+		result[userID][contentID] = struct{}{}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate watched content ids for users rows: %w", err)
 	}
 
 	return result, nil

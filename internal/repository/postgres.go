@@ -15,8 +15,8 @@ func NewPostgresPool(ctx context.Context, cfg config.Config) (*pgxpool.Pool, err
 		return nil, fmt.Errorf("parse postgres dsn: %w", err)
 	}
 
-	poolConfig.MaxConns = 10
-	poolConfig.MinConns = 2
+	poolConfig.MaxConns = 20
+	poolConfig.MinConns = 4
 	poolConfig.MaxConnLifetime = 30 * time.Minute
 	poolConfig.MaxConnIdleTime = 10 * time.Minute
 	poolConfig.HealthCheckPeriod = 1 * time.Minute
